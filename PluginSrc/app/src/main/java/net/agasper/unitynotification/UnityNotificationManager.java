@@ -4,7 +4,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -33,49 +32,10 @@ public class UnityNotificationManager extends BroadcastReceiver
 {
     private static Set<String> channels = new HashSet<>();
 
-    public static void CreateChannel(String identifier, String name, String description, int importance, String soundName, int enableLights, int lightColor, int enableVibration, long[] vibrationPattern, String bundle) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
-            return;
-
-        channels.add(identifier);
-
-        NotificationManager nm = (NotificationManager) UnityPlayer.currentActivity.getSystemService(Context.NOTIFICATION_SERVICE);
-        NotificationChannel channel = new NotificationChannel(identifier, name, importance);
-        channel.setDescription(description);
-        if (soundName != null) {
-            Resources res = UnityPlayer.currentActivity.getResources();
-            int id = res.getIdentifier("raw/" + soundName, null, UnityPlayer.currentActivity.getPackageName());
-            AudioAttributes audioAttributes = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
-            channel.setSound(Uri.parse("android.resource://" + bundle + "/" + id), audioAttributes);
-        }
-        channel.enableLights(enableLights == 1);
-        channel.setLightColor(lightColor);
-        channel.enableVibration(enableVibration == 1);
-        if (vibrationPattern == null)
-            vibrationPattern = new long[] { 1000L, 1000L };
-        channel.setVibrationPattern(vibrationPattern);
-        nm.createNotificationChannel(channel);
-    }
-
-    @TargetApi(24)
-    private static void createChannelIfNeeded(String identifier, String name, String soundName, boolean enableLights, boolean enableVibration, String bundle) {
-        if (channels.contains(identifier))
-            return;
-        channels.add(identifier);
-
-        CreateChannel(identifier, name, identifier + " notifications", NotificationManager.IMPORTANCE_DEFAULT, soundName, enableLights ? 1 : 0, Color.GREEN, enableVibration ? 1 : 0, null, bundle);
-    }
-
     public static void SetNotification(int id, long delayMs, String title, String message, String ticker, int sound, String soundName, int vibrate,
                                        int lights, String largeIconResource, String smallIconResource, int bgColor, String bundle, String channel,
                                        ArrayList<NotificationAction> actions)
     {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (channel == null)
-                channel = "default";
-            createChannelIfNeeded(channel, title, soundName, lights == 1, vibrate == 1, bundle);
-        }
-
         Activity currentActivity = UnityPlayer.currentActivity;
         AlarmManager am = (AlarmManager)currentActivity.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(currentActivity, UnityNotificationManager.class);
@@ -104,12 +64,6 @@ public class UnityNotificationManager extends BroadcastReceiver
     public static void SetRepeatingNotification(int id, long delayMs, String title, String message, String ticker, long rep, int sound, String soundName, int vibrate, int lights,
                                                 String largeIconResource, String smallIconResource, int bgColor, String bundle, String channel, ArrayList<NotificationAction> actions)
     {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (channel == null)
-                channel = "default";
-            createChannelIfNeeded(channel, title, soundName, lights == 1, vibrate == 1, bundle);
-        }
-
         Activity currentActivity = UnityPlayer.currentActivity;
         AlarmManager am = (AlarmManager)currentActivity.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(currentActivity, UnityNotificationManager.class);
@@ -168,7 +122,7 @@ public class UnityNotificationManager extends BroadcastReceiver
         if (channel == null)
             channel = "default";
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channel);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder((context));
 
         builder.setContentIntent(pendingIntent)
                 .setAutoCancel(true)
